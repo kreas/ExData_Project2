@@ -6,8 +6,8 @@
 # GitHub: https://github.com/kreas/ExData_Project2
 # File: plot4.R
 #
-# Across the United States, how have emissions from coal combustion-related 
-# sources changed from 1999–2008?
+# How have emissions from motor vehicle sources changed from 1999–2008 in 
+# Baltimore City?
 #
 # Directions -------------------------------------------------------------------
 #
@@ -21,24 +21,28 @@
 
 # Load ggPlot2
 library(ggplot2)
+library(plyr)
 
 ## This first line will likely take a few seconds. Be patient!
 NEI <- readRDS("summarySCC_PM25.rds") # PM2.5 Emissions Data
 SCC <- readRDS("Source_Classification_Code.rds") # Source Classification Table
 
-# Get the combustion and coal values from SCC and extract the subset from NEI
-ss        <- unique(grep("coal", SCC$EI.Sector, ignore.case=T, value=T))
-ss        <- subset(SCC, EI.Sector %in% ss)
-NEI       <- subset(NEI, SCC %in% ss$SCC )
+# Subset the data to the Baltimore region.
+SCC.onRoad    <- subset(SCC, Data.Category == 'Onroad')
+NEI.onRoad    <- subset(NEI, SCC %in% SCC.onRoad$SCC & fips == 24510)
+
+# Create a new data frame that contains the sum of all the emission by year.
+plot.data         <- ddply(NEI.onRoad, .(year), function(x) sum(x$Emissions))
+names(plot.data)  <- c("year", "Emissions") # Set column names
 
 # Set the output options
-png(file = "plot4.png", width = 640, height = 480, bg = "transparent")
+png(file = "plot5.png", width = 640, height = 480, bg = "transparent")
 
 # Plot the data. 
-g <- ggplot(data=NEI, aes(factor(year), Emissions, fill = type))
+g <- ggplot(plot.data, aes(factor(year), Emissions, fill=Emissions))
 g <- g + geom_bar(stat="identity", position="dodge") +
-         xlab("Year")
-         ggtitle("Coal Combustion-Related Emissions (1999-2008)")
+         xlab("Year") +
+         ggtitle("Motor Vehicle Emissions in Baltimore: 1999-2008")
 
 # Print to the device.
 print(g)
